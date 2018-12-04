@@ -4,22 +4,28 @@ import android.annotation.SuppressLint;
 import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
+import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentSender;
 import android.location.Location;
 import android.location.LocationListener;
+import android.media.RingtoneManager;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Looper;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v4.app.NotificationCompat;
+import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GoogleApiAvailability;
 import com.google.android.gms.common.api.ApiException;
 import com.google.android.gms.common.api.GoogleApiClient;
+import com.google.android.gms.common.api.ResolvableApiException;
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationCallback;
 import com.google.android.gms.location.LocationRequest;
@@ -49,147 +55,44 @@ public class LocationApi extends Worker implements GoogleApiClient.ConnectionCal
 
     private final String TAG = "LocationApi";
     private final String TAG_LOCATION = "TAG_LOCATION";
-    private Context context;
+    public static Context context;
     private boolean stopService = false;
 
     /** Location Fetch Interval in Minutes */
-    private static final int LOCATION_FETCH_INTERVAL = 15;
+    private static final int LOCATION_FETCH_INTERVAL = 10;
 
     /* For Google Fused API */
     protected GoogleApiClient mGoogleApiClient;
     protected LocationSettingsRequest mLocationSettingsRequest;
     private String latitude = "0.0", longitude = "0.0";
-    public static FusedLocationProviderClient mFusedLocationClient;
+    private FusedLocationProviderClient mFusedLocationClient;
     private SettingsClient mSettingsClient;
     private LocationCallback mLocationCallback;
     private LocationRequest mLocationRequest;
     private Location mCurrentLocation;
-    /* For Google Fused API */
 
     LocationApi(@NonNull Context appContext, @NonNull WorkerParameters workerParams){
         super(appContext, workerParams);
-        this.context = getApplicationContext();
     }
 
     @NonNull
     @Override
     public Result doWork() {
-//        StartForeground();
-//        final Handler handler = new Handler();
-//        final Runnable runnable = new Runnable() {
-//
-//            @Override
-//            public void run() {
-//                try {
-//                    if (!stopService) {
-//                        //Perform your task here
-//                    }
-//
-//                } catch (Exception e) {
-//                    e.printStackTrace();
-//                } finally {
-//                    if (!stopService) {
-//                        handler.postDelayed(this, TimeUnit.SECONDS.toMillis(10));
-//                    }
-//                }
-//            }
-//        };
-//        handler.postDelayed(runnable, 2000);
         buildGoogleApiClient();
-        long delay = TimeUnit.SECONDS.toMillis(10);
+        long delay = TimeUnit.MINUTES.toMillis(30);
         Timer timer = new Timer();
         timer.schedule(new TimerTask()
         {
             public void run()
             {
-                LocationApi.mFusedLocationClient.removeLocationUpdates(mLocationCallback);
+                if (mFusedLocationClient != null) {
+                    mFusedLocationClient.removeLocationUpdates(mLocationCallback);
+                    Log.e(TAG_LOCATION, "Location Update Callback Removed");
+                }
             }
         }, delay);
 
         return Result.SUCCESS;
-    }
-//    @Override
-//    public void onCreate() {
-//        super.onCreate();
-//        context = this;
-//    }
-
-//    @Override
-//    public int onStartCommand(Intent intent, int flags, int startId) {
-//        StartForeground();
-//        final Handler handler = new Handler();
-//        final Runnable runnable = new Runnable() {
-//
-//            @Override
-//            public void run() {
-//                try {
-//                    if (!stopService) {
-//                        //Perform your task here
-//                    }
-//
-//                } catch (Exception e) {
-//                    e.printStackTrace();
-//                } finally {
-//                    if (!stopService) {
-//                        handler.postDelayed(this, TimeUnit.SECONDS.toMillis(10));
-//                    }
-//                }
-//            }
-//        };
-//        handler.postDelayed(runnable, 2000);
-//
-//        buildGoogleApiClient();
-//
-//        return START_STICKY;
-//    }
-
-//    @Override
-//    public void onDestroy() {
-//        Log.e(TAG, "Service Stopped");
-//        stopService = true;
-//        if (mFusedLocationClient != null) {
-//            mFusedLocationClient.removeLocationUpdates(mLocationCallback);
-//            Log.e(TAG_LOCATION, "Location Update Callback Removed");
-//        }
-//        super.onDestroy();
-//    }
-
-//    @Nullable
-//    @Override
-//    public IBinder onBind(Intent intent) {
-//        return null;
-//    }
-
-    private void StartForeground() {
-        Intent intent = new Intent(context, SleepTrackerActivity.class);
-        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
-//        PendingIntent pendingIntent = PendingIntent.getActivity(this, 0 /* Request code */, intent, PendingIntent.FLAG_ONE_SHOT);
-
-        String CHANNEL_ID = "channel_location";
-        String CHANNEL_NAME = "channel_location";
-
-        NotificationCompat.Builder builder = null;
-        NotificationManager notificationManager = (NotificationManager) getApplicationContext().getSystemService(Context.NOTIFICATION_SERVICE);
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            NotificationChannel channel = new NotificationChannel(CHANNEL_ID, CHANNEL_NAME, NotificationManager.IMPORTANCE_DEFAULT);
-            channel.setLockscreenVisibility(Notification.VISIBILITY_PRIVATE);
-            notificationManager.createNotificationChannel(channel);
-            builder = new NotificationCompat.Builder(getApplicationContext(), CHANNEL_ID);
-            builder.setChannelId(CHANNEL_ID);
-            builder.setBadgeIconType(NotificationCompat.BADGE_ICON_NONE);
-        } else {
-            builder = new NotificationCompat.Builder(getApplicationContext(), CHANNEL_ID);
-        }
-
-        builder.setContentTitle("Monitoring Your Sleep!");
-        builder.setContentText("Koo Koo!!!!");
-//        Uri notificationSound = RingtoneManager.getActualDefaultRingtoneUri(this, RingtoneManager.TYPE_NOTIFICATION);
-//        builder.setSound(notificationSound);
-        builder.setAutoCancel(true);
-        builder.setSmallIcon(R.drawable.ic_stat_onesignal_default);
-//        builder.setContentIntent(pendingIntent);
-        Notification notification = builder.build();
-//        startForeground(101, notification);
     }
 
     @Override
@@ -247,13 +150,13 @@ public class LocationApi extends Worker implements GoogleApiClient.ConnectionCal
                 int statusCode = ((ApiException) e).getStatusCode();
                 switch (statusCode) {
                     case LocationSettingsStatusCodes.RESOLUTION_REQUIRED:
-//                        try {
-//                            int REQUEST_CHECK_SETTINGS = 214;
-//                            ResolvableApiException rae = (ResolvableApiException) e;
-//                            rae.startResolutionForResult((AppCompatActivity) context, REQUEST_CHECK_SETTINGS);
-//                        } catch (IntentSender.SendIntentException sie) {
+                        try {
+                            int REQUEST_CHECK_SETTINGS = 214;
+                            ResolvableApiException rae = (ResolvableApiException) e;
+                            rae.startResolutionForResult((AppCompatActivity) context, REQUEST_CHECK_SETTINGS);
+                        } catch (IntentSender.SendIntentException sie) {
                             Log.e(TAG_LOCATION, "Unable to execute request.");
-//                        }
+                        }
                         break;
                     case LocationSettingsStatusCodes.SETTINGS_CHANGE_UNAVAILABLE:
                         Log.e(TAG_LOCATION, "Location settings are inadequate, and cannot be fixed here. Fix in Settings.");
@@ -311,5 +214,38 @@ public class LocationApi extends Worker implements GoogleApiClient.ConnectionCal
     @SuppressLint("MissingPermission")
     private void requestLocationUpdate() {
         mFusedLocationClient.requestLocationUpdates(mLocationRequest, mLocationCallback, Looper.myLooper());
+    }
+
+    private void notifyUser() {
+        Intent intent = new Intent(context, SleepTrackerActivity.class);
+        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+        PendingIntent pendingIntent = PendingIntent.getActivity(context, 0 /* Request code */, intent, PendingIntent.FLAG_ONE_SHOT);
+
+        String CHANNEL_ID = "channel_location";
+        String CHANNEL_NAME = "channel_location";
+
+        NotificationCompat.Builder builder = null;
+        NotificationManager notificationManager = (NotificationManager) getApplicationContext().getSystemService(Context.NOTIFICATION_SERVICE);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            NotificationChannel channel = new NotificationChannel(CHANNEL_ID, CHANNEL_NAME, NotificationManager.IMPORTANCE_DEFAULT);
+            channel.setLockscreenVisibility(Notification.VISIBILITY_PUBLIC);
+            notificationManager.createNotificationChannel(channel);
+            builder = new NotificationCompat.Builder(getApplicationContext(), CHANNEL_ID);
+            builder.setChannelId(CHANNEL_ID);
+            builder.setBadgeIconType(NotificationCompat.BADGE_ICON_NONE);
+        } else {
+            builder = new NotificationCompat.Builder(getApplicationContext(), CHANNEL_ID);
+        }
+
+        builder.setContentTitle("Your sleep time seems to be less!");
+        builder.setContentText("Sleep Eat and Work Buddy...");
+        Uri notificationSound = RingtoneManager.getActualDefaultRingtoneUri(context, RingtoneManager.TYPE_NOTIFICATION);
+        builder.setSound(notificationSound);
+        builder.setAutoCancel(true);
+        builder.setSmallIcon(R.drawable.ic_stat_onesignal_default);
+        builder.setContentIntent(pendingIntent);
+        Notification notification = builder.build();
+        notificationManager.notify(101, notification);
+
     }
 }

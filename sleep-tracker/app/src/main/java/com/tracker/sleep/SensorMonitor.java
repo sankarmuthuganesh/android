@@ -7,12 +7,8 @@ import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.hardware.display.DisplayManager;
-import android.location.Location;
-import android.location.LocationListener;
-import android.location.LocationManager;
 import android.media.AudioManager;
 import android.os.Build;
-import android.os.Bundle;
 import android.os.PowerManager;
 import android.support.annotation.NonNull;
 import android.util.Log;
@@ -28,73 +24,40 @@ import java.util.concurrent.TimeUnit;
 import androidx.work.Worker;
 import androidx.work.WorkerParameters;
 
-public class MonitorService extends Worker {
+public class SensorMonitor extends Worker {
 
-    /* Give the Job a Unique Id */
-    private static final int JOB_ID = 1000;
-    /** Last Sensor Change Event Time     */
-    private static long lastMonitoredTime;
-    /** Predicted Sleep Start Time     */
-    private static String sleepStartTime  = "21:00:00";
-    /** Predicted Sleep End Time     */
-    private static String sleepEndtTime  = "06:00:00";
-
-    private Context context;
-    /** Current GPS Location of User */
-    private static Location userCurrentLocation;
     /** The Android Sensor Manager */
     private SensorManager sensorManager;
 
     private Sensor sensor;
-    /** The GoogleMap Api to Determine the device location, mode of transportation, if the device is moving,
-     * Create and monitor predefined geographical regions, known as geofences,
-     * Listen for location changes.
-    */
-//    private GoogleMap googleMap;
-//    MonitorService(){
-//
-//    }
-    MonitorService(@NonNull Context appContext, @NonNull WorkerParameters workerParams){
+
+    SensorMonitor(@NonNull Context appContext, @NonNull WorkerParameters workerParams){
         super(appContext, workerParams);
     }
 
-//    public static void enqueueWork(Context ctx, Intent intent) {
-//        enqueueWork(ctx, MonitorService.class, JOB_ID, intent);
-//    }
-@NonNull
-@Override
-public Result doWork() {
-    Log.i("Monitor***************************** isAudioPlaying: ", String.valueOf(isAudioPlaying()));
-    registerSensorListeners();
-//        locationMonitor();
-    isScreenActive();
+    @NonNull
+    @Override
+    public Result doWork() {
+        Log.i("Monitor***************************** isAudioPlaying: ", String.valueOf(isAudioPlaying()));
+        registerSensorListeners();
+        isScreenActive();
 
-    long delay = TimeUnit.SECONDS.toMillis(10);
-    Timer timer = new Timer();
-    timer.schedule(new TimerTask()
-    {
-        public void run()
-        {
+        long delay = TimeUnit.MINUTES.toMillis(10);
+        Timer timer = new Timer();
+        timer.schedule(new TimerTask(){
+        public void run() {
             sensorManager.unregisterListener(sensorListener);
         }
-    }, delay);
+        }, delay);
 
-    return Result.SUCCESS;
-}
-//    @Override
-//    protected void onHandleWork(Intent workIntent) {
-//        Log.i("Monitor***************************** isAudioPlaying: ", String.valueOf(isAudioPlaying()));
-//        registerSensorListeners();
-////        locationMonitor();
-//        isScreenActive();
-//    }
+        return Result.SUCCESS;
+    }
+
 
     /** Listener for all Phone's Motion Sensor */
     private SensorEventListener sensorListener = new SensorEventListener() {
         @Override
         public void onSensorChanged(SensorEvent event) {
-            long currentTime = event.timestamp;
-//            if(currentTime - lastMonitoredTime < 200){
                 if(event.sensor.getType() == Sensor.TYPE_ACCELEROMETER){
                     float[] values = event.values;
                     float x = values[0];
@@ -104,7 +67,6 @@ public Result doWork() {
                     if(accelerationSquareRoot >= 1.2){
                         Log.i("Monitor***************************** Type: ", String.valueOf(event.sensor.getName()));
                         Log.i("Monitor***************************** Value: ", String.valueOf(accelerationSquareRoot));
-                        // changes happened
                     }
                 }
                 if(event.sensor.getType() == Sensor.TYPE_STEP_COUNTER){
@@ -123,8 +85,6 @@ public Result doWork() {
                     // in a call
                     Log.i("Monitor***************************** Type: ", String.valueOf(event.sensor.getName()));
                 }
-                lastMonitoredTime = currentTime;
-//            }
         }
 
         @Override
@@ -133,40 +93,6 @@ public Result doWork() {
         }
 
         };
-
-    // Defining a listener that responds to location updates
-    public static final LocationListener locationListener = new LocationListener() {
-        public void onLocationChanged(Location location) {
-            // Called when a new location is found by the network location provider.
-            userCurrentLocation = location;
-//            toast("Location Changed: "+userCurrentLocation);
-        }
-        public void onStatusChanged(String provider, int status, Bundle extras) {}
-        public void onProviderEnabled(String provider) {}
-        public void onProviderDisabled(String provider) {}
-    };
-
-    private void locationMonitor(){
-        LocationManager locationManager = (LocationManager) getApplicationContext()
-                .getSystemService(Context.LOCATION_SERVICE);
-
-//        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) ==
-//                PackageManager.PERMISSION_GRANTED && ActivityCompat
-//                .checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) ==
-//                PackageManager.PERMISSION_GRANTED) {
-//            locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, locationListener);
-//            Location lastKnownLocation = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
-//            Log.i("Monitor***************************** Location: ", String.valueOf(lastKnownLocation));
-//            lastKnownLocation.distanceTo(lastKnownLocation);
-//            return lastKnownLocation;
-//        }
-//        googleMap.setMyLocationEnabled(true);
-//        Location currentLocation = LocationServices.FusedLocationApi.getLastLocation(googleMap);
-
-//      else{
-//            return null;
-//        }
-    }
 
     private boolean isScreenActive(){
         KeyguardManager kgMgr = (KeyguardManager) getApplicationContext().getSystemService(Context.KEYGUARD_SERVICE);
@@ -211,14 +137,4 @@ public Result doWork() {
         }
     }
 
-//    final Handler mHandler = new Handler();
-//
-//    // Helper for showing tests
-//    void toast(final CharSequence text) {
-//        mHandler.post(new Runnable() {
-//            @Override public void run() {
-//                Toast.makeText(MonitorService.this, text, Toast.LENGTH_SHORT).show();
-//            }
-//        });
-//    }
 }
