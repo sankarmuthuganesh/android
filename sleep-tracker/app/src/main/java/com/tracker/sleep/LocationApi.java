@@ -232,6 +232,7 @@ public class LocationApi extends Worker implements GoogleApiClient.ConnectionCal
             notificationManager.createNotificationChannel(channel);
             builder = new NotificationCompat.Builder(getApplicationContext(), CHANNEL_ID);
             builder.setChannelId(CHANNEL_ID);
+            builder.setVibrate(new long[0]);
             builder.setBadgeIconType(NotificationCompat.BADGE_ICON_NONE);
         } else {
             builder = new NotificationCompat.Builder(getApplicationContext(), CHANNEL_ID);
