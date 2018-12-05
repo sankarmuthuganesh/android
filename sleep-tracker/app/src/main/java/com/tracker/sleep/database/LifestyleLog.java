@@ -4,14 +4,26 @@ import android.arch.persistence.room.ColumnInfo;
 import android.arch.persistence.room.Entity;
 import android.arch.persistence.room.PrimaryKey;
 
+import java.sql.Timestamp;
+
 @Entity
 public class LifestyleLog {
     @PrimaryKey
-    public int time;
+    public Timestamp time;
 
-    @ColumnInfo(name = "first_name")
+    @ColumnInfo(name = "location")
     public double[] location;
 
-    @ColumnInfo(name = "last_name")
-    public String lastName;
+    @ColumnInfo(name = "accelerometry")
+    public double accelerometry;
+
+    @ColumnInfo(name = "walk")
+    public double walk;
+
+    @ColumnInfo(name = "drive")
+    public double drive;
+
+    @ColumnInfo(name = "usingApps")
+    public double usingApps;
+
 }
